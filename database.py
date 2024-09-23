@@ -8,13 +8,15 @@ class Database:
         self.headers = []
         self.data = []
 
-    def read_data(self, just_headers=False):
+    def read_data(self, just_headers=False, func=None):
         with open(self.csv_file, "r", newline="", encoding="utf-8") as file:
             reader = csv.reader(file)
             self.headers = next(reader)
             if just_headers:
                 return
             for row in reader:
+                if func:
+                    func(row)
                 self.data.append(row)
 
     def write_data(self):
