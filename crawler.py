@@ -33,6 +33,7 @@ class Crawler:
             self.urls_set.add(unique_url)
 
     def convert_urls_set(self):
+        self.urls_db.data = []
         for url in self.urls_set:
             self.urls_db.data.append(url.to_list())
 
@@ -72,6 +73,7 @@ class Crawler:
         self.page_counter += 1
         if self.page_counter % self.save_period == 0:
             print("\x1b[1;42mwriting url data\x1b[0m")
+            self.convert_urls_set()
             self.urls_db.write_data()
 
         if max_pages:
