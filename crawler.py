@@ -47,8 +47,8 @@ class Crawler:
             self.urls_db.data.append(url.to_list())
         if report:
             print("\x1b[43murl set conversion report\x1b[0m")
-            print(f"\x1b[33mtotal urls: \x1b[0;1m{len(self.urls_set)}\x1b[0m")
-            print(f"\x1b[33mtotal references: \x1b[0;1m{total_references}\x1b[0m")
+            print(f"\x1b[33mtotal urls: \x1b[0m{len(self.urls_set)}")
+            print(f"\x1b[33mtotal references: \x1b[0m{total_references}")
             print("\x1b[33mreference occurences:\x1b[0m")
             hidden = 0
             for key, value in sorted(references_table.items(), key=lambda x: x[1], reverse=True):
@@ -69,7 +69,7 @@ class Crawler:
 
         asyncio.get_event_loop().run_until_complete(self.crawl_())
 
-        print("\x1b[1;43mwriting url data\x1b[0m")
+        print("\x1b[33mwriting url data\x1b[0m")
         self.convert_urls_set(report=True)
         self.urls_db.write_data()
 
@@ -93,14 +93,14 @@ class Crawler:
     async def crawl_page_(self, page_url, crawl_depth, max_pages=None):
         self.page_counter += 1
         if self.page_counter % self.save_period == 0:
-            print("\x1b[1;33mwriting url data\x1b[0m")
+            print("\x1b[33mwriting url data\x1b[0m")
             self.convert_urls_set()
             self.urls_db.write_data()
 
         if max_pages:
-            print(f"\x1b[1;42mscraping page {self.page_counter}/{max_pages}\x1b[0m", page_url)
+            print(f"\x1b[42mscraping page {self.page_counter}/{max_pages}\x1b[0m", page_url)
         else:
-            print(f"\x1b[1;42mscraping page {self.page_counter}\x1b[0m", page_url)
+            print(f"\x1b[42mscraping page {self.page_counter}\x1b[0m", page_url)
 
         page = await self.driver.get(page_url)
         page_content = await page.get_content()
