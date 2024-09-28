@@ -1,5 +1,6 @@
 import asyncio
 import bs4
+from collections import defaultdict
 import nodriver
 import random
 import time
@@ -14,6 +15,8 @@ class Crawler:
         self.main_url = main_url
         parsed_url = tldextract.extract(self.main_url)
         self.domain = parsed_url.domain
+
+        self.urls_set = set()
 
         self.urls_db = Database(urls_db_path)
         self.max_crawl_depth = max_crawl_depth
@@ -32,10 +35,28 @@ class Crawler:
             unique_url = UniqueURL(row[0], row[1], row[2])
             self.urls_set.add(unique_url)
 
-    def convert_urls_set(self):
+    def convert_urls_set(self, report=False):
         self.urls_db.data = []
+        if report:
+            total_references = 0
+            references_table = defaultdict(int)
         for url in self.urls_set:
+            if report:
+                total_references += url.references
+                references_table[url.references] += 1
             self.urls_db.data.append(url.to_list())
+        if report:
+            print("\x1b[43murl set conversion report\x1b[0m")
+            print(f"\x1b[33mtotal urls: \x1b[0;1m{len(self.urls_set)}\x1b[0m")
+            print(f"\x1b[33mtotal references: \x1b[0;1m{total_references}\x1b[0m")
+            print("\x1b[33mreference occurences:\x1b[0m")
+            hidden = 0
+            for key, value in sorted(references_table.items(), key=lambda x: x[1], reverse=True):
+                if value != 1:
+                    print(f"\tref: {key}\t\tocc: {value}")
+                else:
+                    hidden += 1
+            print(f"\x1b[33m\t({hidden} references with one occurence hidden)\x1b[0m")
 
     def crawl(self):
 
@@ -46,10 +67,10 @@ class Crawler:
         self.urls_db.read_data(func=integerize)
         self.load_urls_set()
 
-        asyncio.run(self.crawl_())
+        asyncio.get_event_loop().run_until_complete(self.crawl_())
 
-        print("\x1b[1;42mwriting url data\x1b[0m")
-        self.convert_urls_set()
+        print("\x1b[1;43mwriting url data\x1b[0m")
+        self.convert_urls_set(report=True)
         self.urls_db.write_data()
 
     async def crawl_(self):
@@ -72,7 +93,7 @@ class Crawler:
     async def crawl_page_(self, page_url, crawl_depth, max_pages=None):
         self.page_counter += 1
         if self.page_counter % self.save_period == 0:
-            print("\x1b[1;42mwriting url data\x1b[0m")
+            print("\x1b[1;33mwriting url data\x1b[0m")
             self.convert_urls_set()
             self.urls_db.write_data()
 
@@ -92,7 +113,12 @@ class Crawler:
             pending_urls.append(link_href)
 
         pending_urls_set = {UniqueURL(url, 0, 0) for url in pending_urls}
-        pending_urls_set.difference_update(self.urls_set)
+
+        for url in self.urls_set:
+            if url in pending_urls_set:
+                url.references += 1
+
+        pending_urls_set -= self.urls_set
 
         for pending_unique_url in pending_urls_set:
             pending_url = pending_unique_url.url
@@ -111,7 +137,7 @@ class Crawler:
                 print("\x1b[32mvalid url\x1b[0m", url)
 
             timestamp = int(time.time())
-            self.urls_set.add(UniqueURL(url, 0, timestamp))
+            self.urls_set.add(UniqueURL(url, 1, timestamp))
 
             if crawl_depth < self.max_crawl_depth:
                 await self.crawl_page_(url, crawl_depth + 1)

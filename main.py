@@ -6,6 +6,6 @@ if __name__ == "__main__":
         "www.walmart.com",
         "database/urls.csv",
         0,
-        debug=True,
+        debug=False,
     )
     crawler.crawl()
